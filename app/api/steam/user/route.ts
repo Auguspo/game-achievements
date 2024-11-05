@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios, { AxiosError } from 'axios';
 
+
+const apiKey =process.env.NEXT_PUBLIC_STEAM_KEY;
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const steamId = searchParams.get('steamId');
@@ -12,7 +14,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const response = await axios.get(
-      `http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=3608B8097FDD594B191A6845C5984509&steamids=${steamId}`
+      `http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${apiKey}&steamids=${steamId}`
     );
    
     return NextResponse.json(response.data, { status: 200 });

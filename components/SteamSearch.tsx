@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import GameList from "./GameList"; // Asegúrate de que la ruta sea correcta
 import { AxiosError } from "axios";
+import Image from "next/image";
 
 const SteamSearch: React.FC = () => {
   const [steamId, setSteamId] = useState<string>("");
@@ -58,7 +59,7 @@ const SteamSearch: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col items-center space-y-4">
+    <div className="flex flex-col items-center space-y-4 ">
       <div className="flex items-center w-full max-w-md">
         <Input
           type="number"
@@ -79,11 +80,13 @@ const SteamSearch: React.FC = () => {
       {data && (
         <div className="mt-4 flex flex-col items-center">
           <h3 className="text-2xl font-bold">{data.personaname}</h3> {/* Título más grande */}
-          <img
-            src={data.avatarfull}
-            alt={`${data.personaname} avatar`}
-            className="w-32 h-32 rounded-full mt-2"
-          />
+          <Image
+  src={data.avatarfull}
+  alt={`${data.personaname} avatar`}
+  width={128} // 32 * 4 (la imagen se escalará a 32px)
+  height={128} // 32 * 4 (la imagen se escalará a 32px)
+  className="rounded-full mt-2"
+/>
         </div>
       )}
       {showGames && steamId && <GameList steamId={steamId} />}

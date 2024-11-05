@@ -15,6 +15,11 @@ const nextConfig: NextConfig = {
         port: '', // Deja vacío si no usas un puerto específico
         pathname: '/steamcommunity/public/images/apps/**', // Asegúrate de que el patrón de pathname sea correcto
       },
+      {
+        protocol: 'https',
+        hostname: 'avatars.steamstatic.com',
+        port: '', // Deja vacío si no usas un puerto específico
+      },
     ],
   },
   // Otras configuraciones que necesites

@@ -27,13 +27,13 @@ export default function RootLayout({
     <html lang="en" data-theme="light">
       <link rel="icon" href="/crosshair.png" type="image/png" sizes="32x32" />
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col items-center justify-center min-h-screen`}
+        className={`${geistSans.variable} ${geistMono.variable} bg-gray-300 antialiased flex flex-col items-center justify-center min-h-screen`}
       >
-        <header className="flex items-center mb-4 my-4">
+        <header className="flex items-center mb-4 my-2 ">
           <img src="/crosshair.png" alt="Icono" className="h-8 w-8 mr-2" /> {/* Icono a la izquierda */}
           <h1 className="text-2xl font-bold">Achievement Targetter</h1> {/* Título de la página */}
         </header>
-        <div className="max-w-xl w-full p-4 bg-background text-foreground"> {/* Contenedor centrado */}
+        <div className="max-w-xl w-full bg-gray-300 p-4 bg-background text-foreground"> {/* Contenedor centrado */}
           {children}
         </div>
       </body>

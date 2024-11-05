@@ -10,17 +10,14 @@ interface Achievement {
   unlocktime: number;
 }
 
-
-  
-
 interface GlobalAchievement {
   name: string;
   percent: number;
 }
 
 // Manejador para el endpoint que recibe el appid y steamid y retorna todos los logros con `achieved`
-export async function GET(req: Request, context: { params: { appid: string, steamid: string } }) {
-  const { appid, steamid } =await context.params;
+export async function GET(request: Request, { params }: { params: { appid: string, steamid: string } }) {
+  const { appid, steamid } = params;
 
   if (!appid || !steamid) {
     return NextResponse.json({ error: 'appid y steamid son requeridos' }, { status: 400 });

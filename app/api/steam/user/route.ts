@@ -1,6 +1,6 @@
 // app/api/steam/user/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -16,14 +16,15 @@ export async function GET(req: NextRequest) {
     );
    
     return NextResponse.json(response.data, { status: 200 });
-  } catch (error) {
+  } catch (error : unknown) {
     console.error('Error at API call:', error);
-    if (error.response) {
+    if(error instanceof AxiosError){
+    if (error.response ) {
       console.error('API Response:', error.response.data);
       return NextResponse.json(
         { error: `API Error: ${error.response.data.error}` },
         { status: error.response.status }
-      );
+      );}
     } else {
       return NextResponse.json({ error: 'Unknown API error' }, { status: 500 });
     }

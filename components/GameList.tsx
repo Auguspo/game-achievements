@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import Link from 'next/link';
 
 interface Game {
   appid: number;
@@ -11,85 +12,81 @@ interface GameID {
   name: string;
 }
 
-interface GamesID {
-  applist: {
-    apps: GameID[]; // Arreglo de juegos con appid y nombre
-  };
-}
-
 const GameList: React.FC<{ steamId: string }> = ({ steamId }) => {
   const [games, setGames] = useState<Game[]>([]);
   const [gamesID, setGamesID] = useState<{ [key: number]: string }>({});
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState<string>(''); // Estado para el término de búsqueda
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
   useEffect(() => {
     const fetchGames = async () => {
-        try {
-          const response = await axios.get(`/api/steamUser?steamId=${steamId}`);
-          if (response.status !== 200) {
-            throw new Error('Error al obtener juegos');
-          }
-          setGames(response.data.response.games);
-        } catch (err) {
-          setError(err instanceof Error ? err.message : 'Error desconocido');
-        }
-      };
-      
-
-    const fetchGamesID = async () => {
       try {
-        const response = await fetch('/GamesID.json'); // Ruta correcta al archivo en public
-        if (!response.ok) {
-          throw new Error('Error al cargar el archivo GamesID.json');
+        const response = await fetch(`/api/steam/user/games?steamId=${steamId}`);
+        if (response.ok) {
+          const gameIds: number[] = await response.json();
+          setGames(gameIds.map((id) => ({ appid: id, playtime_forever: 0 })));
+          await fetchGamesID(gameIds);
+        } else {
+          setError(`Error al obtener los juegos: ${response.status} - ${response.statusText}`);
         }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error desconocido al obtener los juegos');
+      }
+    };
 
-        const gamesId: GamesID = await response.json();
-
-        // Verificar que gamesId.applist.apps esté definido y sea un arreglo
-        if (gamesId.applist && Array.isArray(gamesId.applist.apps)) {
-          // Crear un mapa de appid a nombre de juego
+    const fetchGamesID = async (gameIds: number[]) => {
+      try {
+        const response = await axios.post('/api/game-names', { gameIds });
+        if (response.status === 200) {
+          const gamesData: GameID[] = response.data;
           const gamesMap: { [key: number]: string } = {};
-          gamesId.applist.apps.forEach((game) => {
+          gamesData.forEach((game) => {
             gamesMap[game.appid] = game.name || `Juego desconocido (appid: ${game.appid})`;
           });
           setGamesID(gamesMap);
         } else {
-          throw new Error('Formato inesperado en GamesID.json');
+          setError(`Error al cargar los nombres de los juegos: ${response.status} - ${response.statusText}`);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error al cargar los nombres de los juegos');
+        setError(err instanceof Error ? err.message : 'Error desconocido al cargar los nombres de los juegos');
       }
     };
 
     fetchGames();
-    fetchGamesID();
   }, [steamId]);
 
-  // Filtrar juegos según el término de búsqueda
-  const filteredGames = games.filter(game => {
+  const filteredGames = games.filter((game) => {
     const gameName = gamesID[game.appid] || `Juego desconocido (appid: ${game.appid})`;
     return gameName.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
   return (
-    <div>
-      {error && <p>Error: {error}</p>}
-      <h2>Lista de Juegos:</h2>
+    <div className="max-w-lg w-full p-4">
+      {error && <p className="text-red-500">{error}</p>}
+      <h2 className="text-2xl font-bold mb-4">Lista de Juegos:</h2>
       <input
         type="text"
         placeholder="Buscar juego..."
         value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)} // Actualizar el término de búsqueda
-        className="mb-4 p-2 border border-gray-300 rounded"
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="mb-4 w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 box-border"
       />
-      <ul>
-        {filteredGames.map((game) => (
-          <li key={game.appid}>
-            {gamesID[game.appid] || `Juego desconocido (appid: ${game.appid})`} - Tiempo de juego: {game.playtime_forever} minutos
-          </li>
-        ))}
-      </ul>
+      {/* Renderizar la lista solo si el input no está vacío */}
+      {searchTerm && filteredGames.length > 0 && (
+        <ul className="space-y-2">
+          {filteredGames.map((game) => (
+            <li key={game.appid} className="border-b border-gray-300 pb-2">
+              <Link href={`/${steamId}/game/${game.appid}`} className="text-blue-600 hover:underline">
+                {gamesID[game.appid] || `Juego desconocido (appid: ${game.appid})`}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+      {/* Mensaje si no hay juegos que coincidan con la búsqueda */}
+      {searchTerm && filteredGames.length === 0 && (
+        <p className="text-gray-500">No se encontraron juegos.</p>
+      )}
     </div>
   );
 };

@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     const response = await axios.get(
       `http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=3608B8097FDD594B191A6845C5984509&steamids=${steamId}`
     );
-    console.log('API Response:', response.data);
+   
     return NextResponse.json(response.data, { status: 200 });
   } catch (error) {
     console.error('Error at API call:', error);

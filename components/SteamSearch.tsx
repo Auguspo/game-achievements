@@ -45,11 +45,13 @@ const SteamSearch: React.FC = () => {
   return (
     <div className="flex flex-col items-center space-y-4">
       <Input
-        type="text"
+        type="number"
         placeholder="Enter Steam ID"
         value={steamId}
         onChange={(e) => setSteamId(e.target.value)}
         className="w-full max-w-md"
+        minLength={17}
+        maxLength={17}
       />
       <Button onClick={handleSearch} className="mt-2" disabled={loading}>
         {loading ? 'Searching...' : 'Search'}

@@ -1,22 +1,17 @@
-// pages/api/gamesID.ts
-import { NextApiRequest, NextApiResponse } from 'next';
+// app/api/gamesID/route.ts
+import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export async function GET() {
   const filePath = path.join(process.cwd(), 'public', 'GamesID.json');
 
-  fs.readFile(filePath, 'utf8', (err, data) => {
-    if (err) {
-      res.status(500).json({ error: 'Error al cargar el archivo GamesID.json' });
-      return;
-    }
-
-    try {
-      const gamesID = JSON.parse(data);
-      res.status(200).json(gamesID);
-    } catch (parseError) {
-      res.status(500).json({ error: 'Error al analizar el archivo JSON' });
-    }
-  });
+  try {
+    const data = await fs.promises.readFile(filePath, 'utf8');
+    const gamesID = JSON.parse(data);
+    return NextResponse.json(gamesID); // Respondemos con el JSON
+  } catch (err) {
+    console.error('Error reading or parsing GamesID.json', err);
+    return NextResponse.json({ error: 'Error al cargar el archivo GamesID.json' }, { status: 500 });
+  }
 }

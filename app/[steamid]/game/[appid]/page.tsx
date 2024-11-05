@@ -6,6 +6,20 @@ import axios from "axios";
 import { useParams } from "next/navigation";
 import GameView from "@/components/GameView"; // Asegúrate de que esta ruta sea correcta
 
+interface CombinedAchievement {
+  name: string; // Apiname
+  displayName: string;
+  description: string;
+  icon: string;
+  icongray: string;
+  defaultvalue: number;
+  hidden: number;
+  achieved: number;
+  unlocktime: number;
+  percent: number; // Porcentaje de logro global
+}
+
+
 export default function GamePage() {
   const params = useParams();
   const appid = params?.appid as string; // Obtener el appid de los parámetros
@@ -14,7 +28,7 @@ export default function GamePage() {
 
   const [gameTitle, setGameTitle] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [achievements, setAchievements] = useState<any[]>([]); // Estado para los logros
+  const [achievements, setAchievements] = useState<CombinedAchievement[]>([]); // Estado para los logros
 
   useEffect(() => {
     const fetchGameData = async () => {

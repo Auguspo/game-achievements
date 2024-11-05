@@ -74,7 +74,7 @@ const GameList: React.FC<{ steamId: string }> = ({ steamId }) => {
       {/* Renderizar la lista solo si el input no está vacío */}
       {searchTerm && filteredGames.length > 0 && (
         <ul className="space-y-2">
-          {filteredGames.map((game) => (
+          {filteredGames.slice(0, 5).map((game) => (
             <li key={game.appid} className="border-b border-gray-300 pb-2">
               <Link
                 href={`/${steamId}/game/${game.appid}`}

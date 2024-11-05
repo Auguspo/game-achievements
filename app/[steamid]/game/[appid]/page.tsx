@@ -39,14 +39,9 @@ export default function GamePage() {
         const responseac = await axios.get(
           `/api/get-user-achievements/${appid}/${steamid}`,
         );
-        const achievementsData = responseac.data;
 
-        // Filtrar logros que no han sido alcanzados (achieved = 0)
-        const filteredAchievements = achievementsData.filter(
-          (achievement: any) => achievement.achieved === 0,
-        );
-
-        setAchievements(filteredAchievements); // Guardar logros filtrados en el estado
+        console.log(responseac);
+        setAchievements(responseac.data); // Guardar logros filtrados en el estado
       } catch (error) {
         console.error("Error fetching game data:", error);
         setError("Error al cargar los datos del juego.");
@@ -63,7 +58,8 @@ export default function GamePage() {
   }
 
   if (loading || !gameTitle) {
-    return <p>Cargando...</p>;
+    return           <div className="text-center">Loading...</div> // Mensaje de carga
+
   }
 
   return (

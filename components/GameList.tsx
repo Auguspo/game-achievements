@@ -63,10 +63,10 @@ const GameList: React.FC<{ steamId: string }> = ({ steamId }) => {
   return (
     <div className="max-w-lg w-full p-4">
       {error && <p className="text-red-500">{error}</p>}
-      <h2 className="text-2xl font-bold mb-4">Lista de Juegos:</h2>
+      <h2 className="text-2xl font-bold mb-4 text-center">Game list:</h2>
       <input
         type="text"
-        placeholder="Buscar juego..."
+        placeholder="Search game..."
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         className="mb-4 w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 box-border"
@@ -76,7 +76,10 @@ const GameList: React.FC<{ steamId: string }> = ({ steamId }) => {
         <ul className="space-y-2">
           {filteredGames.map((game) => (
             <li key={game.appid} className="border-b border-gray-300 pb-2">
-              <Link href={`/${steamId}/game/${game.appid}`} className="text-blue-600 hover:underline">
+              <Link
+                href={`/${steamId}/game/${game.appid}`}
+                className="text-blue-600 hover:text-blue-800 hover:underline transition duration-200 ease-in-out cursor-pointer"
+              >
                 {gamesID[game.appid] || `Juego desconocido (appid: ${game.appid})`}
               </Link>
             </li>
@@ -85,7 +88,7 @@ const GameList: React.FC<{ steamId: string }> = ({ steamId }) => {
       )}
       {/* Mensaje si no hay juegos que coincidan con la búsqueda */}
       {searchTerm && filteredGames.length === 0 && (
-        <p className="text-gray-500">No se encontraron juegos.</p>
+        <p className="text-gray-500">No games found</p>
       )}
     </div>
   );

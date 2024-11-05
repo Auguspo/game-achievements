@@ -34,6 +34,7 @@ body {
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
   }
+
   .dark {
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
@@ -68,5 +69,26 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* CSS para ocultar las flechas del input de tipo number */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield; /* Para Firefox */
+}
+@layer components {
+  .dark .bg-background {
+    background-color: hsl(
+      var(--background)
+    ) !important; /* O el color que deseas */
+  }
+  .dark .text-foreground {
+    color: hsl(var(--foreground)) !important; /* O el color que deseas */
   }
 }

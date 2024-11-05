@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import SteamSearch from "@/components/SteamSearch";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Home() {
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -13,9 +14,15 @@ export default function Home() {
 
   return (
     <div className='p-4'>
-      <h1 className='text-2xl mb-4'>Buscar por ID</h1>
-      <SteamSearch onSearch={handleSearch} />
-      
+      <Card className='max-w-md mx-auto'>
+        <CardHeader>
+          <CardTitle className='text-2xl'>Search by ID</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SteamSearch  />
+          {/* Aquí puedes agregar cualquier otro contenido necesario */}
+        </CardContent>
+      </Card>
     </div>
   );
 }

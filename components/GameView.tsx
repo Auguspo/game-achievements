@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import React from "react";
-
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 interface GameViewProps {
   appid: number;
   gameTitle: string;
@@ -24,38 +25,51 @@ interface Achievement {
 
 const GameView: React.FC<GameViewProps> = ({ appid, gameTitle, achievements }) => {
   return (
-    <div className='border p-4 rounded shadow-md'>
-      <h2 className='text-2xl font-semibold'>{gameTitle}</h2>
-      <Image
-        src={`https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appid}/header.jpg?t=1722458438`}
-        alt={`${gameTitle} Header`}
-        width={600}
-        height={200}
-        className='mt-2 w-full h-auto rounded'
-        priority={true}
-      />
-      
-      
-      <div className='mt-4'>
-        <h3 className='text-xl font-bold mb-2'>Logros:</h3>
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-          {achievements.map((achievement) => (
-            <div key={achievement.name} className='border p-2 rounded shadow-sm'>
-              <Image
-                src={achievement.icon}
-                alt={achievement.displayName}
-                width={64}
-                height={64}
-                className='mb-2'
-              />
-              <h4 className='font-semibold'>{achievement.name}: {achievement.displayName}</h4>
-              <p>{achievement.hidden ? " " : achievement.description}</p>
-              <p>Porcentaje de desbloqueo: {achievement.percent.toFixed(2)}%</p>
-            </div>
-          ))}
-        </div>
+<Card className='w-full max-w-md mx-auto'>
+  <CardHeader>
+    <CardTitle>{gameTitle}</CardTitle>
+  </CardHeader>
+  <CardContent className='space-y-4'>
+    <Image
+      src={`https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appid}/header.jpg?t=1722458438`}
+      alt={`${gameTitle} Header`}
+      width={600}
+      height={200}
+      className='mt-2 w-full h-auto rounded'
+      priority={true}
+    />
+    
+    <div className='mt-4'>
+      <h3 className='text-xl font-bold mb-2'>Logros:</h3>
+      {achievements.map((achievement, index) => (
+  <div key={index} className='flex items-start space-x-4 p-2 border border-gray-300 rounded-lg bg-gray-50'>
+     {achievement.icon && (
+      <div className='relative w-12 h-12 flex-shrink-0 flex items-center justify-center my-auto'>
+        <Image
+          src={achievement.icon}
+          alt={achievement.displayName}
+          layout='fill'
+          objectFit='contain'
+          className='rounded'
+        />
       </div>
+    )}
+    <div className='flex-grow'>
+      <h4 className='font-semibold'>
+        {achievement.name}: {achievement.displayName}
+      </h4>
+      <p >{achievement.hidden ? "No description" : achievement.description || "No descriptcion"}</p>
+      <p>Global achievement percentage: {achievement.percent.toFixed(2)}%</p>
     </div>
+  </div>
+))}
+
+
+      </div>
+   
+  </CardContent>
+</Card>
+
   );
 };
 

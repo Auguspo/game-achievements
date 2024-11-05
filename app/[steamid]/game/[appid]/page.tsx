@@ -67,13 +67,12 @@ export default function GamePage() {
   }
 
   return (
-    <div>
-      <h1 className='text-3xl font-bold mb-4'>Detalles del Juego</h1>
+    <>
       <GameView
         appid={Number(appid)}
         gameTitle={gameTitle}
         achievements={achievements}
       />
-    </div>
+    </>
   );
 }

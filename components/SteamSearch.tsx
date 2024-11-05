@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import GameList from "./GameList"; // Asegúrate de que la ruta sea correcta
 import { AxiosError } from "axios";
 
+
+
 const SteamSearch: React.FC = () => {
   const [steamId, setSteamId] = useState<string>("");
   const [data, setData] = useState<{

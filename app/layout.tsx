@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-import Image from "next/image";
+import Header from "@/components/Header";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -30,10 +30,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} bg-gray-300 antialiased flex flex-col items-center justify-center min-h-screen`}
       >
-        <header className="flex items-center mb-4 my-4 ">
-          <Image src="/crosshair.png" alt="Icono" className="  mr-2" width={50} height={50} /> {/* Icono a la izquierda */}
-          <h1 className="text-2xl font-bold">Achievement Targetter</h1> {/* Título de la página */}
-        </header>
+        <Header />
         <div className="max-w-xl w-full bg-gray-300 p-4 bg-background text-foreground"> {/* Contenedor centrado */}
           {children}
         </div>

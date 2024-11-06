@@ -11,7 +11,7 @@ export default function Home() {
     <div className='p-4 bg-gray-300'>
       <Card className='max-w-md mx-auto bg-gray-100'> {/* Fondo añadido */}
         <CardHeader>
-          <CardTitle className='text-center text-2xl font-bold'>Search by ID</CardTitle> {/* Título centrado y más grande */}
+          <CardTitle className='text-center text-2xl font-bold'>Search your ID</CardTitle> {/* Título centrado y más grande */}
         </CardHeader>
         <CardContent>
           <SteamSearch />

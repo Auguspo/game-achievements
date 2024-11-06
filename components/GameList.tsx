@@ -20,6 +20,7 @@ const GameList: React.FC<{ steamId: string }> = ({ steamId }) => {
 
   useEffect(() => {
     const fetchGames = async () => {
+      setError(null); // Borra el error antes de hacer la solicitud
       try {
         const response = await fetch(`/api/steam/user/games?steamId=${steamId}`);
         if (response.ok) {

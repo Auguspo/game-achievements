@@ -19,7 +19,6 @@ interface CombinedAchievement {
   percent: number; // Porcentaje de logro global
 }
 
-
 export default function GamePage() {
   const params = useParams();
   const appid = params?.appid as string; // Obtener el appid de los parámetros
@@ -33,7 +32,6 @@ export default function GamePage() {
   useEffect(() => {
     const fetchGameData = async () => {
       if (!appid) return; // Asegúrate de que hay un appid
-      console.log(steamid); // Imprimir el appid para verificar
 
       try {
         // Obtener el nombre del juego
@@ -68,17 +66,17 @@ export default function GamePage() {
   }, [appid, steamid]);
 
   if (error) {
-    return <p>Error: {error}</p>;
+    return <p className='text-center'>Error: {error}</p>;
   }
 
   if (loading || !gameTitle) {
-    return           <div className="text-center">Loading...</div> // Mensaje de carga
-
+    return <div className='text-center'>Loading...</div>; // Mensaje de carga
   }
 
   return (
     <>
       <GameView
+      steamId={steamid}
         appid={Number(appid)}
         gameTitle={gameTitle}
         achievements={achievements}

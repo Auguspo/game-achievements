@@ -146,9 +146,9 @@ const GameView: React.FC<GameViewProps> = ({
                         ? "No description"
                         : achievement.description || "No description"}
                     </p>
-                    <p>  GAP: {typeof achievement.percent === 'number'
-    ? achievement.percent.toFixed(1)
-    : 'N/A'}
+                    <p>  GAP: 
+    {achievement.percent}
+    
   %</p>
                   </div>
                 </div>

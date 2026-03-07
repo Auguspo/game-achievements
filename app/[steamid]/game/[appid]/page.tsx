@@ -4,10 +4,10 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useParams } from "next/navigation";
-import GameView from "@/components/GameView"; // Asegúrate de que esta ruta sea correcta
+import GameView from "@/components/GameView";
 
 interface CombinedAchievement {
-  name: string; // Apiname
+  name: string;
   displayName: string;
   description: string;
   icon: string;
@@ -16,18 +16,28 @@ interface CombinedAchievement {
   hidden: number;
   achieved: number;
   unlocktime: number;
-  percent: number; // Porcentaje de logro global
+  percent: number;
+}
+
+interface OwnedGame {
+  appid: number;
+  playtime_forever: number;
+}
+
+interface ApiErrorResponse {
+  error?: string;
 }
 
 export default function GamePage() {
   const params = useParams();
-  const appid = params?.appid as string; // Obtener el appid de los parámetros
-  const steamid = params?.steamid as string; // Obtener el steamid de los parámetros
+  const appid = params?.appid as string;
+  const steamid = params?.steamid as string;
   const [loading, setLoading] = useState(true);
 
   const [gameTitle, setGameTitle] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [achievements, setAchievements] = useState<CombinedAchievement[]>([]); // Estado para los logros
+  const [achievements, setAchievements] = useState<CombinedAchievement[]>([]);
+  const [playtimeForever, setPlaytimeForever] = useState<number>(0);
 
   useEffect(() => {
     try {
@@ -39,30 +49,48 @@ export default function GamePage() {
 
   useEffect(() => {
     const fetchGameData = async () => {
-      if (!appid) return; // Asegúrate de que hay un appid
+      if (!appid) return;
+      const parsedAppId = Number(appid);
+      if (!Number.isInteger(parsedAppId)) {
+        setError("Invalid game id.");
+        setLoading(false);
+        return;
+      }
 
       try {
-        // Obtener el nombre del juego
         const response = await axios.post("/api/game-names", {
-          gameIds: [parseInt(appid)], // Usa el appid para la búsqueda
+          gameIds: [parsedAppId],
         });
 
-        // Verifica que la respuesta es exitosa y que hay datos
         if (response.status === 200 && response.data.length > 0) {
-          const game = response.data[0]; // Asumir que el primer objeto es el juego que buscas
-          setGameTitle(game.name); // Asigna el nombre del juego al estado
+          const game = response.data[0];
+          setGameTitle(game.name || `Unknown game (appid: ${parsedAppId})`);
+        } else {
+          setError("Game title could not be loaded.");
+          return;
         }
 
-        // Obtener los logros
         const responseac = await axios.get(
           `/api/get-user-achievements/${appid}/${steamid}`,
         );
-        setAchievements(responseac.data); // Guardar logros filtrados en el estado
-      } catch (error) {
-        console.error("Error fetching game data:", error);
-        setError("Error loading game data.");
+        const achievementsData: CombinedAchievement[] = responseac.data;
+        setAchievements(Array.isArray(achievementsData) ? achievementsData : []);
+
+        const ownedGamesResponse = await axios.get(
+          `/api/steam/user/games?steamId=${steamid}`,
+        );
+        const ownedGames: OwnedGame[] = ownedGamesResponse.data;
+        const currentGame = ownedGames.find((game) => game.appid === parsedAppId);
+        setPlaytimeForever(currentGame?.playtime_forever ?? 0);
+      } catch (requestError) {
+        console.error("Error fetching game data:", requestError);
+        if (axios.isAxiosError<ApiErrorResponse>(requestError)) {
+          setError(requestError.response?.data?.error || "Error loading game data.");
+        } else {
+          setError("Error loading game data.");
+        }
       } finally {
-        setLoading(false); // Finaliza el estado de carga
+        setLoading(false);
       }
     };
 
@@ -70,22 +98,22 @@ export default function GamePage() {
   }, [appid, steamid]);
 
   if (error) {
-    return <p className='text-center'>Error: {error}</p>;
+    return <p className="text-center">Error: {error}</p>;
   }
 
   if (loading || !gameTitle) {
-    return <div className='text-center'>Loading...</div>; // Mensaje de carga
+    return <div className="text-center">Loading...</div>;
   }
 
   return (
     <>
       <GameView
-      steamId={steamid}
+        steamId={steamid}
         appid={Number(appid)}
         gameTitle={gameTitle}
         achievements={achievements}
+        playtimeForever={playtimeForever}
       />
     </>
   );
 }
-

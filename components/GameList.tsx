@@ -6,11 +6,16 @@ import { Input } from "@/components/ui/input";
 interface Game {
   appid: number;
   playtime_forever: number;
+  rtime_last_played?: number;
 }
 
 interface GameID {
   appid: number;
   name: string;
+}
+
+interface GamesErrorResponse {
+  error?: string;
 }
 
 const normalizeText = (value: string) =>
@@ -34,14 +39,24 @@ const GameList: React.FC<{ steamId: string }> = ({ steamId }) => {
       try {
         const response = await fetch(`/api/steam/user/games?steamId=${steamId}`);
         if (!response.ok) {
-          setError(`Error fetching games: ${response.status} ${response.statusText}`);
+          let message = `Error fetching games: ${response.status} ${response.statusText}`;
+          try {
+            const errorData: GamesErrorResponse = await response.json();
+            if (errorData?.error) {
+              message = errorData.error;
+            }
+          } catch {
+            // keep default status message if no JSON body
+          }
+          setError(message);
           setGames([]);
           setGamesID({});
           return;
         }
 
-        const gameIds: number[] = await response.json();
-        setGames(gameIds.map((id) => ({ appid: id, playtime_forever: 0 })));
+        const ownedGames: Game[] = await response.json();
+        setGames(ownedGames);
+        const gameIds = ownedGames.map((game) => game.appid);
 
         const namesResponse = await axios.post("/api/game-names", { gameIds });
         if (namesResponse.status !== 200) {
@@ -50,9 +65,9 @@ const GameList: React.FC<{ steamId: string }> = ({ steamId }) => {
           return;
         }
 
-        const gamesData: GameID[] = namesResponse.data;
+        const gameNamesData: GameID[] = namesResponse.data;
         const gamesMap: { [key: number]: string } = {};
-        gamesData.forEach((game) => {
+        gameNamesData.forEach((game) => {
           gamesMap[game.appid] = game.name || `Unknown game (appid: ${game.appid})`;
         });
         setGamesID(gamesMap);
@@ -73,6 +88,19 @@ const GameList: React.FC<{ steamId: string }> = ({ steamId }) => {
       return normalizeText(gameName).includes(normalizedSearchTerm);
     });
   }, [games, gamesID, searchTerm]);
+
+  const visibleGames = useMemo(
+    () => (searchTerm.trim() ? filteredGames : games),
+    [filteredGames, games, searchTerm],
+  );
+
+  const displayGames = useMemo(
+    () =>
+      [...visibleGames].sort(
+        (a, b) => (b.rtime_last_played ?? 0) - (a.rtime_last_played ?? 0),
+      ),
+    [visibleGames],
+  );
 
   return (
     <div className="w-full rounded-xl border border-slate-300 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
@@ -102,23 +130,23 @@ const GameList: React.FC<{ steamId: string }> = ({ steamId }) => {
 
       {loading && <p className="text-sm text-slate-500 dark:text-slate-400">Loading games...</p>}
 
-      {!loading && !searchTerm && (
-        <p className="text-sm text-slate-500 dark:text-slate-400">Start typing to filter your games.</p>
-      )}
-
-      {!loading && searchTerm && filteredGames.length > 0 && (
+      {!loading && visibleGames.length > 0 && (
         <ul className="space-y-1">
-          {filteredGames.slice(0, 8).map((game) => (
+          {displayGames.slice(0, 8).map((game) => (
             <li key={game.appid}>
               <Link
                 href={`/${steamId}/game/${game.appid}`}
                 className="block rounded-md border border-slate-200 px-3 py-2 text-blue-700 transition-colors hover:bg-blue-50 hover:text-blue-900 dark:border-slate-700 dark:text-blue-300 dark:hover:bg-slate-800 dark:hover:text-blue-200"
               >
-                {gamesID[game.appid] || `Unknown game (appid: ${game.appid})`}
+                <p className="font-medium">{gamesID[game.appid] || `Unknown game (appid: ${game.appid})`}</p>
               </Link>
             </li>
           ))}
         </ul>
+      )}
+
+      {!loading && !searchTerm && visibleGames.length === 0 && (
+        <p className="text-sm text-slate-500 dark:text-slate-400">Start typing to filter your games.</p>
       )}
 
       {!loading && searchTerm && filteredGames.length === 0 && (

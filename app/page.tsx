@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import SteamSearch from "@/components/SteamSearch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -15,7 +16,9 @@ export default function Home() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <SteamSearch />
+        <Suspense fallback={<div className="text-sm text-slate-500 dark:text-slate-400">Loading search...</div>}>
+          <SteamSearch />
+        </Suspense>
       </CardContent>
     </Card>
   );

@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import GameList from "./GameList";
 import { AxiosError } from "axios";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 
 const SteamSearch: React.FC = () => {
+  const searchParams = useSearchParams();
   const [steamId, setSteamId] = useState<string>("");
   const [username, setUsername] = useState<string>("");
   const [data, setData] = useState<{
@@ -15,6 +17,13 @@ const SteamSearch: React.FC = () => {
   const [showGames, setShowGames] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const routeError = searchParams.get("error");
+    if (routeError) {
+      setError(routeError);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     try {

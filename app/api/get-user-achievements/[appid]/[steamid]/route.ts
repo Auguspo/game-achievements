@@ -49,26 +49,54 @@ export async function GET(
   }
 
   try {
-    // Obtener los logros de un jugador
-    const playerAchievementsResponse = await axios.get(
-      `https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v0001/?appid=${appid}&key=${steamApiKey}&steamid=${steamid}`,
-    );
-    const playerAchievements = playerAchievementsResponse.data.playerstats
-      .achievements as Achievement[];
-
     // Obtener el esquema de logros del juego
     const achievementsSchemaResponse = await axios.get(
       `https://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v0002/?key=${steamApiKey}&appid=${appid}&format=json`,
     );
-    const achievementsSchema = achievementsSchemaResponse.data.game.availableGameStats
-      .achievements as AchievementSchema[];
+    const achievementsSchema = achievementsSchemaResponse.data?.game?.availableGameStats
+      ?.achievements as AchievementSchema[] | undefined;
+
+    if (!Array.isArray(achievementsSchema) || achievementsSchema.length === 0) {
+      return NextResponse.json([], { status: 200 });
+    }
+
+    // Obtener los logros de un jugador.
+    // Steam puede devolver 400 para algunos casos validos (p. ej. juegos sin stats por usuario).
+    const playerAchievementsResponse = await axios.get(
+      `https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v0001/?appid=${appid}&key=${steamApiKey}&steamid=${steamid}`,
+      { validateStatus: () => true },
+    );
+    const playerStats = playerAchievementsResponse.data?.playerstats;
+    const playerStatsError = String(playerStats?.error ?? "").toLowerCase();
+
+    if (playerStatsError.includes("private")) {
+      return NextResponse.json(
+        { error: "Achievements cannot be fetched because this Steam profile is private." },
+        { status: 403 },
+      );
+    }
+
+    if (playerAchievementsResponse.status === 400) {
+      return NextResponse.json([], { status: 200 });
+    }
+
+    if (playerAchievementsResponse.status >= 500) {
+      return NextResponse.json({ error: 'Error fetching achievements' }, { status: 500 });
+    }
+
+    const playerAchievements = Array.isArray(playerStats?.achievements)
+      ? (playerStats.achievements as Achievement[])
+      : [];
 
     // Obtener los porcentajes de logros globales
     const globalAchievementsResponse = await axios.get(
       `https://api.steampowered.com/ISteamUserStats/GetGlobalAchievementPercentagesForApp/v0002/?gameid=${appid}&format=JSON`,
     );
-    const globalAchievements = globalAchievementsResponse.data.achievementpercentages
-      .achievements as GlobalAchievement[];
+    const globalAchievements = Array.isArray(
+      globalAchievementsResponse.data?.achievementpercentages?.achievements,
+    )
+      ? (globalAchievementsResponse.data.achievementpercentages.achievements as GlobalAchievement[])
+      : [];
 
     // Mapear y combinar la informacion de los logros
     const combinedAchievements: CombinedAchievement[] = achievementsSchema.map(

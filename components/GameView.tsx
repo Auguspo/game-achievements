@@ -9,6 +9,7 @@ interface GameViewProps {
   gameTitle: string;
   achievements: Achievement[];
   steamId: string;
+  playtimeForever: number;
 }
 
 interface Achievement {
@@ -29,7 +30,7 @@ interface SteamUser {
   avatarUrl: string;
 }
 
-const GameView: React.FC<GameViewProps> = ({ appid, gameTitle, achievements, steamId }) => {
+const GameView: React.FC<GameViewProps> = ({ appid, gameTitle, achievements, steamId, playtimeForever }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [steamUser, setSteamUser] = useState<SteamUser | null>(null);
   const [gameImageIndex, setGameImageIndex] = useState<number>(0);
@@ -54,6 +55,8 @@ const GameView: React.FC<GameViewProps> = ({ appid, gameTitle, achievements, ste
     const achieved = achievements.filter((achievement) => achievement.achieved === 1).length;
     return (achieved / total) * 100;
   }, [achievements]);
+
+  const hasAchievements = achievements.length > 0;
 
   useEffect(() => {
     const fetchSteamUser = async () => {
@@ -138,20 +141,31 @@ const GameView: React.FC<GameViewProps> = ({ appid, gameTitle, achievements, ste
               </div>
               <Progress value={progressPercent} className="h-2.5" />
               <p className="mt-2 text-xs text-slate-500">
-                Pending: {pendingAchievements.length} / Total: {achievements.length}
+                {hasAchievements
+                  ? `Pending: ${pendingAchievements.length} / Total: ${achievements.length}`
+                  : "This game has no achievements."}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                Playtime: {(playtimeForever / 60).toFixed(1)} hours
               </p>
             </div>
 
             <div className="space-y-2">
               <h3 className="text-lg font-bold text-slate-900">Pending Achievements</h3>
 
-              {pendingAchievements.length === 0 && (
+              {!hasAchievements && (
+                <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+                  This game has no achievements.
+                </p>
+              )}
+
+              {hasAchievements && pendingAchievements.length === 0 && (
                 <p className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
                   You already completed all achievements in this game.
                 </p>
               )}
 
-              {pendingAchievements.map((achievement) => {
+              {hasAchievements && pendingAchievements.map((achievement) => {
                 const gapPercent = Number(achievement.percent);
                 const gapLabel = Number.isFinite(gapPercent) ? gapPercent.toFixed(1) : "0.0";
                 return (

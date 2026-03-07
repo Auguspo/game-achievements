@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 
-const STEAM_API_KEY = process.env.NEXT_PUBLIC_STEAM_KEY
+const steamApiKey = process.env.STEAM_API_KEY || process.env.NEXT_PUBLIC_STEAM_KEY;
 
 interface Achievement {
   name: string;
@@ -11,7 +11,7 @@ interface Achievement {
 }
 
 interface AchievementSchema {
-  name: string; // Apiname
+  name: string;
   defaultvalue: number;
   displayName: string;
   hidden: number;
@@ -27,43 +27,71 @@ interface GlobalAchievement {
 
 type CombinedAchievement = Achievement & AchievementSchema & GlobalAchievement;
 
-
 // Manejador para el endpoint que recibe el appid y steamid y retorna todos los logros con `achieved`
-export async function GET(request: Request, { params }: { params: Promise<{ appid: string, steamid: string }> }) {
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ appid: string; steamid: string }> },
+) {
   const { appid, steamid } = await params;
 
+  if (!steamApiKey) {
+    return NextResponse.json(
+      { error: 'Falta configurar STEAM_API_KEY en el entorno.' },
+      { status: 500 },
+    );
+  }
+
   if (!appid || !steamid) {
-    return NextResponse.json({ error: 'appid y steamid son requeridos' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'appid y steamid son requeridos' },
+      { status: 400 },
+    );
   }
 
   try {
     // Obtener los logros de un jugador
-    const playerAchievementsResponse = await axios.get(`http://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v0001/?appid=${appid}&key=${STEAM_API_KEY}&steamid=${steamid}`);
-    const playerAchievements = playerAchievementsResponse.data.playerstats.achievements as Achievement[];
+    const playerAchievementsResponse = await axios.get(
+      `https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v0001/?appid=${appid}&key=${steamApiKey}&steamid=${steamid}`,
+    );
+    const playerAchievements = playerAchievementsResponse.data.playerstats
+      .achievements as Achievement[];
 
     // Obtener el esquema de logros del juego
-    const achievementsSchemaResponse = await axios.get(`http://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v0002/?key=${STEAM_API_KEY}&appid=${appid}&format=json`);
-    const achievementsSchema = achievementsSchemaResponse.data.game.availableGameStats.achievements as AchievementSchema[];
+    const achievementsSchemaResponse = await axios.get(
+      `https://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v0002/?key=${steamApiKey}&appid=${appid}&format=json`,
+    );
+    const achievementsSchema = achievementsSchemaResponse.data.game.availableGameStats
+      .achievements as AchievementSchema[];
 
     // Obtener los porcentajes de logros globales
-    const globalAchievementsResponse = await axios.get(`http://api.steampowered.com/ISteamUserStats/GetGlobalAchievementPercentagesForApp/v0002/?gameid=${appid}&format=JSON`);
-    const globalAchievements = globalAchievementsResponse.data.achievementpercentages.achievements as GlobalAchievement[];
+    const globalAchievementsResponse = await axios.get(
+      `https://api.steampowered.com/ISteamUserStats/GetGlobalAchievementPercentagesForApp/v0002/?gameid=${appid}&format=JSON`,
+    );
+    const globalAchievements = globalAchievementsResponse.data.achievementpercentages
+      .achievements as GlobalAchievement[];
 
-    // Mapear y combinar la información de los logros
-    const combinedAchievements: CombinedAchievement[] = achievementsSchema.map((achievementSchema) => {
-      const playerAchievement = playerAchievements.find((pa) => pa.apiname === achievementSchema.name);
-      const globalAchievement = globalAchievements.find((ga) => ga.name === achievementSchema.name);
+    // Mapear y combinar la informacion de los logros
+    const combinedAchievements: CombinedAchievement[] = achievementsSchema.map(
+      (achievementSchema) => {
+        const playerAchievement = playerAchievements.find(
+          (pa) => pa.apiname === achievementSchema.name,
+        );
+        const globalAchievement = globalAchievements.find(
+          (ga) => ga.name === achievementSchema.name,
+        );
 
-      return {
-        ...achievementSchema,
-        achieved: playerAchievement ? playerAchievement.achieved : 0,
-        unlocktime: playerAchievement ? playerAchievement.unlocktime : 0,
-        percent: globalAchievement ? globalAchievement.percent : 0, // Asigna 0 si no se encuentra el porcentaje
-      } as CombinedAchievement ;
-    });
+        return {
+          ...achievementSchema,
+          achieved: playerAchievement ? playerAchievement.achieved : 0,
+          unlocktime: playerAchievement ? playerAchievement.unlocktime : 0,
+          // Asigna 0 si no se encuentra el porcentaje
+          percent: globalAchievement ? globalAchievement.percent : 0,
+        } as CombinedAchievement;
+      },
+    );
 
     // Ordenar los logros por el porcentaje de logro global de mayor a menor
-    combinedAchievements.sort((a: { percent: number; }, b: { percent: number; }) => b.percent - a.percent);
+    combinedAchievements.sort((a: { percent: number }, b: { percent: number }) => b.percent - a.percent);
 
     return NextResponse.json(combinedAchievements);
   } catch (error) {

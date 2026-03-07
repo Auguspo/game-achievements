@@ -1,23 +1,22 @@
 "use client";
+
 import SteamSearch from "@/components/SteamSearch";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Home() {
-
-
-
-
   return (
-    <div className='p-4 bg-gray-300'>
-      <Card className='max-w-md mx-auto bg-gray-100'> {/* Fondo añadido */}
-        <CardHeader>
-          <CardTitle className='text-center text-2xl font-bold'>Search your ID</CardTitle> {/* Título centrado y más grande */}
-        </CardHeader>
-        <CardContent>
-          <SteamSearch />
-          {/* Aquí puedes agregar cualquier otro contenido necesario */}
-        </CardContent>
-      </Card>
-    </div>
+    <Card className="mx-auto max-w-2xl border-slate-300/80 bg-white/85 backdrop-blur shadow-lg dark:border-slate-700 dark:bg-slate-900/85">
+      <CardHeader className="space-y-2">
+        <CardTitle className="text-center text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+          Find your next achievement target
+        </CardTitle>
+        <CardDescription className="text-center text-base text-slate-600 dark:text-slate-400">
+          Search by username or Steam ID, filter your games, and prioritize pending achievements by global rarity.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <SteamSearch />
+      </CardContent>
+    </Card>
   );
 }

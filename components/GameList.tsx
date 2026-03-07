@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import Link from 'next/link';
+import React, { useEffect, useMemo, useState } from "react";
+import axios from "axios";
+import Link from "next/link";
+import { Input } from "@/components/ui/input";
 
 interface Game {
   appid: number;
@@ -12,84 +13,116 @@ interface GameID {
   name: string;
 }
 
+const normalizeText = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
 const GameList: React.FC<{ steamId: string }> = ({ steamId }) => {
   const [games, setGames] = useState<Game[]>([]);
   const [gamesID, setGamesID] = useState<{ [key: number]: string }>({});
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchGames = async () => {
-      setError(null); // Borra el error antes de hacer la solicitud
+      setError(null);
+      setLoading(true);
+
       try {
         const response = await fetch(`/api/steam/user/games?steamId=${steamId}`);
-        if (response.ok) {
-          const gameIds: number[] = await response.json();
-          setGames(gameIds.map((id) => ({ appid: id, playtime_forever: 0 })));
-          await fetchGamesID(gameIds);
-        } else {
-          setError(`Error al obtener los juegos: ${response.status} - ${response.statusText}`);
+        if (!response.ok) {
+          setError(`Error fetching games: ${response.status} ${response.statusText}`);
+          setGames([]);
+          setGamesID({});
+          return;
         }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error desconocido al obtener los juegos');
-      }
-    };
 
-    const fetchGamesID = async (gameIds: number[]) => {
-      try {
-        const response = await axios.post('/api/game-names', { gameIds });
-        if (response.status === 200) {
-          const gamesData: GameID[] = response.data;
-          const gamesMap: { [key: number]: string } = {};
-          gamesData.forEach((game) => {
-            gamesMap[game.appid] = game.name || `Juego desconocido (appid: ${game.appid})`;
-          });
-          setGamesID(gamesMap);
-        } else {
-          setError(`Error al cargar los nombres de los juegos: ${response.status} - ${response.statusText}`);
+        const gameIds: number[] = await response.json();
+        setGames(gameIds.map((id) => ({ appid: id, playtime_forever: 0 })));
+
+        const namesResponse = await axios.post("/api/game-names", { gameIds });
+        if (namesResponse.status !== 200) {
+          setError(`Error loading game names: ${namesResponse.status} ${namesResponse.statusText}`);
+          setGamesID({});
+          return;
         }
+
+        const gamesData: GameID[] = namesResponse.data;
+        const gamesMap: { [key: number]: string } = {};
+        gamesData.forEach((game) => {
+          gamesMap[game.appid] = game.name || `Unknown game (appid: ${game.appid})`;
+        });
+        setGamesID(gamesMap);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error desconocido al cargar los nombres de los juegos');
+        setError(err instanceof Error ? err.message : "Unknown error while loading games");
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchGames();
   }, [steamId]);
 
-  const filteredGames = games.filter((game) => {
-    const gameName = gamesID[game.appid] || `Juego desconocido (appid: ${game.appid})`;
-    return gameName.toLowerCase().includes(searchTerm.toLowerCase());
-  });
+  const filteredGames = useMemo(() => {
+    const normalizedSearchTerm = normalizeText(searchTerm.trim());
+    return games.filter((game) => {
+      const gameName = gamesID[game.appid] || `Unknown game (appid: ${game.appid})`;
+      return normalizeText(gameName).includes(normalizedSearchTerm);
+    });
+  }, [games, gamesID, searchTerm]);
 
   return (
-    <div className="max-w-lg w-full p-4">
-      {error && <p className="text-red-500">{error}</p>}
-      <h2 className="text-2xl font-bold mb-4 text-center">Game list:</h2>
-      <input
+    <div className="w-full rounded-xl border border-slate-300 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+      {error && (
+        <p className="mb-3 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/50 dark:text-red-300">
+          {error}
+        </p>
+      )}
+
+      <div className="mb-3 flex items-end justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Game list</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Type to find a game and open its achievements.</p>
+        </div>
+        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+          {games.length} games
+        </span>
+      </div>
+
+      <Input
         type="text"
         placeholder="Search game..."
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        className="mb-4 w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 box-border"
+        className="mb-3 bg-white dark:bg-slate-950"
       />
-      {/* Renderizar la lista solo si el input no está vacío */}
-      {searchTerm && filteredGames.length > 0 && (
-        <ul className="space-y-2">
-          {filteredGames.slice(0, 5).map((game) => (
-            <li key={game.appid} className="border-b border-gray-300 pb-2">
+
+      {loading && <p className="text-sm text-slate-500 dark:text-slate-400">Loading games...</p>}
+
+      {!loading && !searchTerm && (
+        <p className="text-sm text-slate-500 dark:text-slate-400">Start typing to filter your games.</p>
+      )}
+
+      {!loading && searchTerm && filteredGames.length > 0 && (
+        <ul className="space-y-1">
+          {filteredGames.slice(0, 8).map((game) => (
+            <li key={game.appid}>
               <Link
                 href={`/${steamId}/game/${game.appid}`}
-                className="text-blue-600 hover:text-blue-800 hover:underline transition duration-200 ease-in-out cursor-pointer"
+                className="block rounded-md border border-slate-200 px-3 py-2 text-blue-700 transition-colors hover:bg-blue-50 hover:text-blue-900 dark:border-slate-700 dark:text-blue-300 dark:hover:bg-slate-800 dark:hover:text-blue-200"
               >
-                {gamesID[game.appid] || `Juego desconocido (appid: ${game.appid})`}
+                {gamesID[game.appid] || `Unknown game (appid: ${game.appid})`}
               </Link>
             </li>
           ))}
         </ul>
       )}
-      {/* Mensaje si no hay juegos que coincidan con la búsqueda */}
-      {searchTerm && filteredGames.length === 0 && (
-        <p className="text-gray-500">No games found</p>
+
+      {!loading && searchTerm && filteredGames.length === 0 && (
+        <p className="text-sm text-slate-500 dark:text-slate-400">No games found.</p>
       )}
     </div>
   );

@@ -1,5 +1,6 @@
 import Image from "next/image";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 
@@ -7,7 +8,7 @@ interface GameViewProps {
   appid: number;
   gameTitle: string;
   achievements: Achievement[];
-  steamId: string; // Añadimos steamId como prop
+  steamId: string;
 }
 
 interface Achievement {
@@ -28,40 +29,38 @@ interface SteamUser {
   avatarUrl: string;
 }
 
-const GameView: React.FC<GameViewProps> = ({
-  appid,
-  gameTitle,
-  achievements,
-  steamId, // Recibimos steamId como prop
-}) => {
-  const [achievementsFiltered, setAchievementsFiltered] = useState<Achievement[]>([]);
-  const [percentage, setPercentage] = useState<number>();
+const GameView: React.FC<GameViewProps> = ({ appid, gameTitle, achievements, steamId }) => {
   const [loading, setLoading] = useState<boolean>(true);
-  const [steamUser, setSteamUser] = useState<SteamUser | null>(null); // Estado para almacenar la información del usuario
+  const [steamUser, setSteamUser] = useState<SteamUser | null>(null);
+  const [gameImageIndex, setGameImageIndex] = useState<number>(0);
+
+  const gameImageCandidates = useMemo(
+    () => [
+      `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appid}/capsule_616x353.jpg`,
+      `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appid}/header.jpg`,
+      `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appid}/library_hero.jpg`,
+    ],
+    [appid],
+  );
+
+  const pendingAchievements = useMemo(
+    () => achievements.filter((achievement) => achievement.achieved === 0),
+    [achievements],
+  );
+
+  const progressPercent = useMemo(() => {
+    const total = achievements.length;
+    if (total === 0) return 0;
+    const achieved = achievements.filter((achievement) => achievement.achieved === 1).length;
+    return (achieved / total) * 100;
+  }, [achievements]);
 
   useEffect(() => {
-    const filteredAchievements = achievements.filter(
-      (achievement) => achievement.achieved === 0
-    );
-    setAchievementsFiltered(filteredAchievements);
-
-    const calculateAchievementPercentage = (achievements: Achievement[]) => {
-      const totalAchievements = achievements.length;
-      const achievedCount = achievements.filter((ach) => ach.achieved === 1).length;
-
-      if (totalAchievements === 0) return 0; 
-
-      return (achievedCount / totalAchievements) * 100;
-    };
-
-    setPercentage(calculateAchievementPercentage(achievements));
-
-    // Obtener la información del usuario de Steam
     const fetchSteamUser = async () => {
       try {
         const response = await fetch(`/api/steam/user?steamId=${steamId}`);
         const data = await response.json();
-        if (data.response.players && data.response.players.length > 0) {
+        if (data.response?.players?.length > 0) {
           const player = data.response.players[0];
           setSteamUser({
             personaName: player.personaname,
@@ -70,89 +69,126 @@ const GameView: React.FC<GameViewProps> = ({
         }
       } catch (error) {
         console.error("Error fetching Steam user data:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchSteamUser();
+  }, [steamId]);
 
-    // Cambiar el estado de carga a false una vez que todo esté calculado
-    setLoading(false);
-  }, [achievements, steamId]);
+  useEffect(() => {
+    setGameImageIndex(0);
+  }, [appid]);
 
   return (
-    <Card className="w-full max-w-md mx-auto bg-gray-100">
-      <CardHeader className="relative">
-        {/* Avatar y nombre en las esquinas */}
-        <div className="absolute left-2 top-2 flex items-center space-x-2">
+    <Card className="mx-auto w-full max-w-2xl border-slate-300/80 bg-white/90 shadow-lg">
+      <CardHeader className="space-y-3">
+        <div>
+          <Link
+            href="/"
+            className="inline-flex items-center rounded-md border border-slate-300 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+          >
+            {"<- Back to search"}
+          </Link>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-slate-500">Game</p>
+            <CardTitle className="text-2xl font-bold text-slate-900">{gameTitle}</CardTitle>
+          </div>
           {steamUser && (
-            <>
+            <div className="flex items-center gap-2 rounded-full border border-slate-300 bg-slate-50 px-3 py-1.5">
               <Image
                 src={steamUser.avatarUrl}
-                alt={`${steamUser.personaName}'s avatar`}
-                width={30}
-                height={30}
+                alt={`${steamUser.personaName} avatar`}
+                width={26}
+                height={26}
                 className="rounded-full"
               />
-              <span className="text-sm font-semibold">{steamUser.personaName}</span>
-            </>
+              <span className="text-sm font-semibold text-slate-700">{steamUser.personaName}</span>
+            </div>
           )}
         </div>
-        {/* Título del juego en el centro */}
-        <div className="flex justify-center">
-          <CardTitle className="text-center text-2xl font-bold">{gameTitle}</CardTitle>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
+
         <Image
-          src={`https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appid}/header.jpg?t=1722458438`}
-          alt={`${gameTitle} Header`}
-          width={600}
-          height={200}
-          className="mt-2 w-full h-auto rounded"
-          priority={true}
+          src={gameImageCandidates[gameImageIndex]}
+          alt={`${gameTitle} header`}
+          width={920}
+          height={430}
+          className="w-full rounded-lg border border-slate-300"
+          priority
+          onError={() => {
+            setGameImageIndex((current) =>
+              current < gameImageCandidates.length - 1 ? current + 1 : current,
+            );
+          }}
         />
+      </CardHeader>
+
+      <CardContent className="space-y-4">
         {loading ? (
-          <div className="text-center">Loading...</div>
+          <div className="text-center text-sm text-slate-500">Loading game data...</div>
         ) : (
           <>
-            <div className="flex items-center justify-between">
-              <Progress value={percentage} className="flex-1 mr-4" />
-              <span className="font-semibold">{percentage?.toFixed(0)}%</span>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <div className="mb-2 flex items-center justify-between text-sm">
+                <span className="font-semibold text-slate-700">Completion</span>
+                <span className="font-bold text-slate-900">{progressPercent.toFixed(0)}%</span>
+              </div>
+              <Progress value={progressPercent} className="h-2.5" />
+              <p className="mt-2 text-xs text-slate-500">
+                Pending: {pendingAchievements.length} / Total: {achievements.length}
+              </p>
             </div>
-            <div className="mt-4">
-              <h3 className="text-xl font-bold mb-2">Achievements:</h3>
-              {achievementsFiltered.map((achievement, index) => (
-                <div
-                  key={index}
-                  className="flex items-start space-x-4 my-1 p-2 border border-gray-300 rounded-lg bg-gray-50"
+
+            <div className="space-y-2">
+              <h3 className="text-lg font-bold text-slate-900">Pending Achievements</h3>
+
+              {pendingAchievements.length === 0 && (
+                <p className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                  You already completed all achievements in this game.
+                </p>
+              )}
+
+              {pendingAchievements.map((achievement) => {
+                const gapPercent = Number(achievement.percent);
+                const gapLabel = Number.isFinite(gapPercent) ? gapPercent.toFixed(1) : "0.0";
+                return (
+                <article
+                  key={achievement.name}
+                  className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-3"
                 >
                   {achievement.icon && (
-                    <div className="relative w-12 h-12 flex-shrink-0 flex items-center justify-center my-auto">
+                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md border border-slate-200 bg-slate-50">
                       <Image
                         src={achievement.icon}
                         alt={achievement.displayName}
-                        layout="fill"
-                        objectFit="contain"
-                        className="rounded"
+                        fill
+                        sizes="48px"
+                        className="object-contain"
                       />
                     </div>
                   )}
-                  <div className="flex-grow overflow-hidden whitespace-normal break-words">
-                    <h4 className="font-semibold">
-                      {achievement.name}: {achievement.displayName}
+
+                  <div className="min-w-0 flex-1">
+                    <h4
+                      className="cursor-help truncate border-b border-dotted border-slate-400 pb-0.5 text-base font-semibold text-slate-900"
+                      title={`Internal name: ${achievement.name}`}
+                      aria-label={`Internal name: ${achievement.name}`}
+                    >
+                      {achievement.displayName}
                     </h4>
-                    <p>
-                      {achievement.hidden
-                        ? "No description"
-                        : achievement.description || "No description"}
+                    <p className="mt-1 text-sm text-slate-700">
+                      {achievement.hidden ? "No description" : achievement.description || "No description"}
                     </p>
-                    <p>  GAP: 
-    {achievement.percent}
-    
-  %</p>
+                    <p className="mt-1 text-sm font-medium text-slate-600">
+                      GAP: <span className="font-bold text-slate-900">{gapLabel}%</span>
+                    </p>
                   </div>
-                </div>
-              ))}
+                </article>
+                );
+              })}
             </div>
           </>
         )}
@@ -162,3 +198,4 @@ const GameView: React.FC<GameViewProps> = ({
 };
 
 export default GameView;
+

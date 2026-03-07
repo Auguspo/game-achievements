@@ -30,6 +30,14 @@ export default function GamePage() {
   const [achievements, setAchievements] = useState<CombinedAchievement[]>([]); // Estado para los logros
 
   useEffect(() => {
+    try {
+      if (steamid) {
+        localStorage.setItem("lastSteamId", steamid);
+      }
+    } catch {}
+  }, [steamid]);
+
+  useEffect(() => {
     const fetchGameData = async () => {
       if (!appid) return; // Asegúrate de que hay un appid
 
@@ -38,8 +46,6 @@ export default function GamePage() {
         const response = await axios.post("/api/game-names", {
           gameIds: [parseInt(appid)], // Usa el appid para la búsqueda
         });
-
-        console.log(response.data); // Asegúrate de que estás recibiendo los datos correctos
 
         // Verifica que la respuesta es exitosa y que hay datos
         if (response.status === 200 && response.data.length > 0) {
@@ -51,12 +57,10 @@ export default function GamePage() {
         const responseac = await axios.get(
           `/api/get-user-achievements/${appid}/${steamid}`,
         );
-
-        console.log(responseac);
         setAchievements(responseac.data); // Guardar logros filtrados en el estado
       } catch (error) {
         console.error("Error fetching game data:", error);
-        setError("Error al cargar los datos del juego.");
+        setError("Error loading game data.");
       } finally {
         setLoading(false); // Finaliza el estado de carga
       }
@@ -84,3 +88,4 @@ export default function GamePage() {
     </>
   );
 }
+

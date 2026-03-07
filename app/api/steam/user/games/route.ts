@@ -10,14 +10,14 @@ export async function GET(req: NextRequest) {
 
   if (!steamApiKey) {
     return NextResponse.json(
-      { error: 'Falta configurar STEAM_API_KEY en el entorno.' },
+      { error: 'STEAM_API_KEY is not configured in the environment.' },
       { status: 500 },
     );
   }
 
   if (!steamId || typeof steamId !== 'string') {
     return NextResponse.json(
-      { error: 'Se debe proporcionar un Steam ID valido.' },
+      { error: 'A valid Steam ID must be provided.' },
       { status: 400 },
     );
   }
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
       !Array.isArray(response.data.response.games)
     ) {
       return NextResponse.json(
-        { error: 'Error al obtener los juegos del usuario.' },
+        { error: 'Error fetching user games.' },
         { status: 500 },
       );
     }
@@ -41,9 +41,9 @@ export async function GET(req: NextRequest) {
     const gameIds = response.data.response.games.map((game: { appid: number }) => game.appid);
     return NextResponse.json(gameIds, { status: 200 });
   } catch (error) {
-    console.error('Error al obtener los juegos del usuario:', error);
+    console.error('Error fetching user games:', error);
     return NextResponse.json(
-      { error: 'Error al obtener los juegos del usuario.' },
+      { error: 'Error fetching user games.' },
       { status: 500 },
     );
   }

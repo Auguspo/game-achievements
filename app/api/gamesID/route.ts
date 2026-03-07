@@ -4,7 +4,9 @@ import fs from 'fs';
 import path from 'path';
 
 export async function GET() {
-  const filePath = path.join(process.cwd(), 'public', 'GamesID.json');
+  const rootFilePath = path.join(process.cwd(), 'GamesID.json');
+  const publicFilePath = path.join(process.cwd(), 'public', 'GamesID.json');
+  const filePath = fs.existsSync(rootFilePath) ? rootFilePath : publicFilePath;
 
   try {
     const data = await fs.promises.readFile(filePath, 'utf8');
@@ -12,6 +14,6 @@ export async function GET() {
     return NextResponse.json(gamesID); // Respondemos con el JSON
   } catch (err) {
     console.error('Error reading or parsing GamesID.json', err);
-    return NextResponse.json({ error: 'Error al cargar el archivo GamesID.json' }, { status: 500 });
+    return NextResponse.json({ error: 'Error loading GamesID.json file' }, { status: 500 });
   }
 }

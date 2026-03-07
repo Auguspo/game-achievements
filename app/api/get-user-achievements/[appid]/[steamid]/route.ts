@@ -36,14 +36,14 @@ export async function GET(
 
   if (!steamApiKey) {
     return NextResponse.json(
-      { error: 'Falta configurar STEAM_API_KEY en el entorno.' },
+      { error: 'STEAM_API_KEY is not configured in the environment.' },
       { status: 500 },
     );
   }
 
   if (!appid || !steamid) {
     return NextResponse.json(
-      { error: 'appid y steamid son requeridos' },
+      { error: 'appid and steamid are required' },
       { status: 400 },
     );
   }
@@ -85,7 +85,7 @@ export async function GET(
           achieved: playerAchievement ? playerAchievement.achieved : 0,
           unlocktime: playerAchievement ? playerAchievement.unlocktime : 0,
           // Asigna 0 si no se encuentra el porcentaje
-          percent: globalAchievement ? globalAchievement.percent : 0,
+          percent: globalAchievement ? Number(globalAchievement.percent) : 0,
         } as CombinedAchievement;
       },
     );
@@ -96,6 +96,6 @@ export async function GET(
     return NextResponse.json(combinedAchievements);
   } catch (error) {
     console.error('Error fetching achievements:', error);
-    return NextResponse.json({ error: 'Error al obtener los logros' }, { status: 500 });
+    return NextResponse.json({ error: 'Error fetching achievements' }, { status: 500 });
   }
 }

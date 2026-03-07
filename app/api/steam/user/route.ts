@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
 
   if (!steamApiKey) {
     return NextResponse.json(
-      { error: 'Falta configurar STEAM_API_KEY en el entorno.' },
+      { error: 'STEAM_API_KEY is not configured in the environment.' },
       { status: 500 },
     );
   }
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 
       if (resolveData.response.success !== 1) {
         return NextResponse.json(
-          { error: 'No se pudo resolver el nombre de usuario' },
+          { error: 'Could not resolve username' },
           { status: 404 },
         );
       }
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Se requiere un Steam ID o username' },
+      { error: 'Steam ID or username is required' },
       { status: 400 },
     );
   } catch (error: unknown) {

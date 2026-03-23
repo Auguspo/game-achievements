@@ -2,7 +2,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { useParams } from "next/navigation";
 import GameView from "@/components/GameView";
 
@@ -24,10 +23,6 @@ interface OwnedGame {
   playtime_forever: number;
 }
 
-interface ApiErrorResponse {
-  error?: string;
-}
-
 export default function GamePage() {
   const params = useParams();
   const appid = params?.appid as string;
@@ -38,6 +33,7 @@ export default function GamePage() {
   const [error, setError] = useState<string | null>(null);
   const [achievements, setAchievements] = useState<CombinedAchievement[]>([]);
   const [playtimeForever, setPlaytimeForever] = useState<number>(0);
+  const [isFromLibrary, setIsFromLibrary] = useState<boolean>(true);
 
   useEffect(() => {
     try {
@@ -58,37 +54,49 @@ export default function GamePage() {
       }
 
       try {
-        const response = await axios.post("/api/game-names", {
-          gameIds: [parsedAppId],
+        const response = await fetch("/api/game-names", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ gameIds: [parsedAppId] }),
         });
+        const gameNameResponse = await response.json();
 
-        if (response.status === 200 && response.data.length > 0) {
-          const game = response.data[0];
+        if (response.ok && Array.isArray(gameNameResponse) && gameNameResponse.length > 0) {
+          const game = gameNameResponse[0];
           setGameTitle(game.name || `Unknown game (appid: ${parsedAppId})`);
         } else {
           setError("Game title could not be loaded.");
           return;
         }
 
-        const responseac = await axios.get(
+        const responseac = await fetch(
           `/api/get-user-achievements/${appid}/${steamid}`,
         );
-        const achievementsData: CombinedAchievement[] = responseac.data;
+        if (!responseac.ok) {
+          const errorData = await responseac.json().catch(() => ({}));
+          setError(errorData?.error || "Error loading game data.");
+          return;
+        }
+        const achievementsData: CombinedAchievement[] = await responseac.json();
         setAchievements(Array.isArray(achievementsData) ? achievementsData : []);
 
-        const ownedGamesResponse = await axios.get(
+        const ownedGamesResponse = await fetch(
           `/api/steam/user/games?steamId=${steamid}`,
         );
-        const ownedGames: OwnedGame[] = ownedGamesResponse.data;
+        if (!ownedGamesResponse.ok) {
+          const errorData = await ownedGamesResponse.json().catch(() => ({}));
+          setError(errorData?.error || "Error loading game data.");
+          return;
+        }
+        const ownedGames: OwnedGame[] = await ownedGamesResponse.json();
         const currentGame = ownedGames.find((game) => game.appid === parsedAppId);
+        setIsFromLibrary(Boolean(currentGame));
         setPlaytimeForever(currentGame?.playtime_forever ?? 0);
       } catch (requestError) {
         console.error("Error fetching game data:", requestError);
-        if (axios.isAxiosError<ApiErrorResponse>(requestError)) {
-          setError(requestError.response?.data?.error || "Error loading game data.");
-        } else {
-          setError("Error loading game data.");
-        }
+        setError(requestError instanceof Error ? requestError.message : "Error loading game data.");
       } finally {
         setLoading(false);
       }
@@ -113,6 +121,7 @@ export default function GamePage() {
         gameTitle={gameTitle}
         achievements={achievements}
         playtimeForever={playtimeForever}
+        isFromLibrary={isFromLibrary}
       />
     </>
   );

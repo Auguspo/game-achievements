@@ -2,7 +2,6 @@ import Image from "next/image";
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 
 interface GameViewProps {
   appid: number;
@@ -10,6 +9,7 @@ interface GameViewProps {
   achievements: Achievement[];
   steamId: string;
   playtimeForever: number;
+  isFromLibrary: boolean;
 }
 
 interface Achievement {
@@ -30,7 +30,7 @@ interface SteamUser {
   avatarUrl: string;
 }
 
-const GameView: React.FC<GameViewProps> = ({ appid, gameTitle, achievements, steamId, playtimeForever }) => {
+const GameView: React.FC<GameViewProps> = ({ appid, gameTitle, achievements, steamId, playtimeForever, isFromLibrary }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [steamUser, setSteamUser] = useState<SteamUser | null>(null);
   const [gameImageIndex, setGameImageIndex] = useState<number>(0);
@@ -57,6 +57,7 @@ const GameView: React.FC<GameViewProps> = ({ appid, gameTitle, achievements, ste
   }, [achievements]);
 
   const hasAchievements = achievements.length > 0;
+  const isFamilySharing = !isFromLibrary && hasAchievements;
 
   useEffect(() => {
     const fetchSteamUser = async () => {
@@ -99,6 +100,11 @@ const GameView: React.FC<GameViewProps> = ({ appid, gameTitle, achievements, ste
           <div>
             <p className="text-xs uppercase tracking-wide text-slate-500">Game</p>
             <CardTitle className="text-2xl font-bold text-slate-900">{gameTitle}</CardTitle>
+            {!isFromLibrary && (
+              <span className="mt-1 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                {isFamilySharing ? "Family sharing" : "Global match"}
+              </span>
+            )}
           </div>
           {steamUser && (
             <div className="flex items-center gap-2 rounded-full border border-slate-300 bg-slate-50 px-3 py-1.5">
@@ -139,15 +145,22 @@ const GameView: React.FC<GameViewProps> = ({ appid, gameTitle, achievements, ste
                 <span className="font-semibold text-slate-700">Completion</span>
                 <span className="font-bold text-slate-900">{progressPercent.toFixed(0)}%</span>
               </div>
-              <Progress value={progressPercent} className="h-2.5" />
               <p className="mt-2 text-xs text-slate-500">
                 {hasAchievements
                   ? `Pending: ${pendingAchievements.length} / Total: ${achievements.length}`
                   : "This game has no achievements."}
               </p>
-              <p className="mt-1 text-xs text-slate-500">
-                Playtime: {(playtimeForever / 60).toFixed(1)} hours
-              </p>
+              {isFromLibrary ? (
+                <p className="mt-1 text-xs text-slate-500">
+                  Playtime: {(playtimeForever / 60).toFixed(1)} hours
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-slate-500">
+                  {isFamilySharing
+                    ? "Playtime unavailable (Family Sharing title)."
+                    : "Playtime unavailable for global match."}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">

@@ -1,5 +1,4 @@
 // app/api/steam/user/games/route.ts
-import axios from 'axios';
 import { NextRequest, NextResponse } from 'next/server';
 
 const steamApiKey = process.env.STEAM_API_KEY || process.env.NEXT_PUBLIC_STEAM_KEY;
@@ -28,25 +27,26 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const response = await axios.get(
+    const response = await fetch(
       `https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=${steamApiKey}&steamid=${steamId}&include_played_free_games=1&format=json`,
     );
+    const responseData = await response.json();
 
-    if (response.status !== 200 || !response.data.response) {
+    if (response.status !== 200 || !responseData.response) {
       return NextResponse.json(
         { error: 'Error fetching user games.' },
         { status: 500 },
       );
     }
 
-    if (!Array.isArray(response.data.response.games)) {
+    if (!Array.isArray(responseData.response.games)) {
       return NextResponse.json(
         { error: 'Games cannot be fetched because the Steam profile or game library is private.' },
         { status: 403 },
       );
     }
 
-    const games: SteamOwnedGame[] = response.data.response.games.map((game: SteamOwnedGame) => ({
+    const games: SteamOwnedGame[] = responseData.response.games.map((game: SteamOwnedGame) => ({
       appid: game.appid,
       playtime_forever: game.playtime_forever ?? 0,
       rtime_last_played: game.rtime_last_played ?? 0,

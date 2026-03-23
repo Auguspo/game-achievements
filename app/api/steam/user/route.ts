@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import axios, { AxiosError } from 'axios';
 
 const steamApiKey = process.env.STEAM_API_KEY || process.env.NEXT_PUBLIC_STEAM_KEY;
 
@@ -18,10 +17,10 @@ export async function GET(req: NextRequest) {
   try {
     // Si se proporciona un `username`, primero resuelve el `steamId`
     if (username) {
-      const resolveResponse = await axios.get(
+      const resolveResponse = await fetch(
         `https://api.steampowered.com/ISteamUser/ResolveVanityURL/v0001/?key=${steamApiKey}&vanityurl=${username}`,
       );
-      const resolveData = resolveResponse.data;
+      const resolveData = await resolveResponse.json();
 
       if (resolveData.response.success !== 1) {
         return NextResponse.json(
@@ -44,11 +43,12 @@ export async function GET(req: NextRequest) {
 
     // Si se proporciona un `steamId`, realiza la llamada para obtener los datos del jugador
     if (steamId) {
-      const response = await axios.get(
+      const response = await fetch(
         `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${steamApiKey}&steamids=${steamId}`,
       );
+      const responseData = await response.json();
 
-      return NextResponse.json(response.data, { status: 200 });
+      return NextResponse.json(responseData, { status: 200 });
     }
 
     return NextResponse.json(
@@ -57,15 +57,6 @@ export async function GET(req: NextRequest) {
     );
   } catch (error: unknown) {
     console.error('Error at API call:', error);
-    if (error instanceof AxiosError) {
-      if (error.response) {
-        console.error('API Response:', error.response.data);
-        return NextResponse.json(
-          { error: `API Error: ${error.response.status}` },
-          { status: error.response.status },
-        );
-      }
-    }
     return NextResponse.json({ error: 'Unknown API error' }, { status: 500 });
   }
 }

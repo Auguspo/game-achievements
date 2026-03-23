@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import GameList from "./GameList";
-import { AxiosError } from "axios";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 
@@ -73,11 +72,8 @@ const SteamSearch: React.FC = () => {
       setData(null);
       setError(result?.error || "No data found for the provided username.");
     } catch (error: unknown) {
-      if (error instanceof AxiosError) {
-        setError(`An error occurred: ${error.message}`);
-      } else {
-        setError("An unexpected error occurred.");
-      }
+      const message = error instanceof Error ? error.message : "An unexpected error occurred.";
+      setError(`An error occurred: ${message}`);
     } finally {
       setLoading(false);
     }
@@ -114,15 +110,10 @@ const SteamSearch: React.FC = () => {
         setError(result?.error || "No data found for the provided Steam ID.");
       }
     } catch (error: unknown) {
-      if (error instanceof AxiosError) {
-        setData(null);
-        setShowGames(false);
-        setError(`An error occurred while searching Steam data: ${error.message}`);
-      } else {
-        setData(null);
-        setShowGames(false);
-        setError("An unexpected error occurred while searching Steam data.");
-      }
+      setData(null);
+      setShowGames(false);
+      const message = error instanceof Error ? error.message : "An unexpected error occurred while searching Steam data.";
+      setError(`An error occurred while searching Steam data: ${message}`);
     } finally {
       setLoading(false);
     }

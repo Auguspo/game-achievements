@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import axios from 'axios';
 
 const steamApiKey = process.env.STEAM_API_KEY || process.env.NEXT_PUBLIC_STEAM_KEY;
 
@@ -49,24 +48,13 @@ export async function GET(
   }
 
   try {
-    // Obtener el esquema de logros del juego
-    const achievementsSchemaResponse = await axios.get(
-      `https://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v0002/?key=${steamApiKey}&appid=${appid}&format=json`,
-    );
-    const achievementsSchema = achievementsSchemaResponse.data?.game?.availableGameStats
-      ?.achievements as AchievementSchema[] | undefined;
-
-    if (!Array.isArray(achievementsSchema) || achievementsSchema.length === 0) {
-      return NextResponse.json([], { status: 200 });
-    }
-
     // Obtener los logros de un jugador.
     // Steam puede devolver 400 para algunos casos validos (p. ej. juegos sin stats por usuario).
-    const playerAchievementsResponse = await axios.get(
+    const playerAchievementsResponse = await fetch(
       `https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v0001/?appid=${appid}&key=${steamApiKey}&steamid=${steamid}`,
-      { validateStatus: () => true },
     );
-    const playerStats = playerAchievementsResponse.data?.playerstats;
+    const playerAchievementsData = await playerAchievementsResponse.json();
+    const playerStats = playerAchievementsData?.playerstats;
     const playerStatsError = String(playerStats?.error ?? "").toLowerCase();
 
     if (playerStatsError.includes("private")) {
@@ -76,30 +64,52 @@ export async function GET(
       );
     }
 
-    if (playerAchievementsResponse.status === 400) {
-      return NextResponse.json([], { status: 200 });
-    }
-
-    if (playerAchievementsResponse.status >= 500) {
-      return NextResponse.json({ error: 'Error fetching achievements' }, { status: 500 });
-    }
-
-    const playerAchievements = Array.isArray(playerStats?.achievements)
+    // If Steam does not return per-user stats (e.g. brand-new profile for this game),
+    // keep going with an empty user-achievements list so schema achievements still render.
+    const playerAchievements = playerAchievementsResponse.status === 200 &&
+      Array.isArray(playerStats?.achievements)
       ? (playerStats.achievements as Achievement[])
       : [];
 
+    // Obtener el esquema de logros del juego
+    const achievementsSchemaResponse = await fetch(
+      `https://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v0002/?key=${steamApiKey}&appid=${appid}&format=json`,
+    );
+    const achievementsSchemaData = await achievementsSchemaResponse.json();
+    const achievementsSchema = achievementsSchemaData?.game?.availableGameStats
+      ?.achievements as AchievementSchema[] | undefined;
+
     // Obtener los porcentajes de logros globales
-    const globalAchievementsResponse = await axios.get(
+    const globalAchievementsResponse = await fetch(
       `https://api.steampowered.com/ISteamUserStats/GetGlobalAchievementPercentagesForApp/v0002/?gameid=${appid}&format=JSON`,
     );
+    const globalAchievementsData = await globalAchievementsResponse.json();
     const globalAchievements = Array.isArray(
-      globalAchievementsResponse.data?.achievementpercentages?.achievements,
+      globalAchievementsData?.achievementpercentages?.achievements,
     )
-      ? (globalAchievementsResponse.data.achievementpercentages.achievements as GlobalAchievement[])
+      ? (globalAchievementsData.achievementpercentages.achievements as GlobalAchievement[])
       : [];
 
+    // Fallback: si el schema no llega pero hay logros globales, construir una lista util
+    // para mostrar achievements pendientes con nombre base.
+    const schemaOrFallback: AchievementSchema[] = Array.isArray(achievementsSchema) && achievementsSchema.length > 0
+      ? achievementsSchema
+      : globalAchievements.map((achievement) => ({
+        name: achievement.name,
+        defaultvalue: 0,
+        displayName: achievement.name,
+        hidden: 0,
+        description: "",
+        icon: "",
+        icongray: "",
+      }));
+
+    if (schemaOrFallback.length === 0) {
+      return NextResponse.json([], { status: 200 });
+    }
+
     // Mapear y combinar la informacion de los logros
-    const combinedAchievements: CombinedAchievement[] = achievementsSchema.map(
+    const combinedAchievements: CombinedAchievement[] = schemaOrFallback.map(
       (achievementSchema) => {
         const playerAchievement = playerAchievements.find(
           (pa) => pa.apiname === achievementSchema.name,
